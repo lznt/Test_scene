@@ -1,0 +1,44 @@
+particle_system http$1$2$2meshmoon.eu.scenes.2.s3-eu-west-1.amazonaws.com$2mediateam-b4527d$2test2$2navmesh$2robocop$2stars_prop.particle
+{
+    // Main attributes
+    quota 7
+    material http://meshmoon.eu.scenes.2.s3-eu-west-1.amazonaws.com/mediateam-b4527d/test2/misc/particle-test/stars_prop.material
+    particle_width 0
+    particle_height 0
+    local_space true
+
+    // Billboard renderer attributes
+    billboard_rotation_type vertex
+    accurate_facing true
+
+    // Emitters
+    emitter Point
+    {
+        up 0 0 1
+        emission_rate 3
+        position 0 1.45 0
+        velocity 0.2
+        velocity_min 0.2
+        velocity_max 0.2
+        time_to_live 1.5
+        time_to_live_min 1.5
+        time_to_live_max 1.5
+        duration 0.2
+        duration_min 0.2
+        duration_max 0.2
+        repeat_delay 0.2
+        repeat_delay_min 0.2
+        repeat_delay_max 0.2
+    }
+
+    // Affectors
+    affector Scaler
+    {
+        rate -0.3
+    }
+
+    affector LinearForce
+    {
+        force_vector 0 0.5 0
+    }
+}
