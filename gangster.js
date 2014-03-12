@@ -22,15 +22,17 @@ var skeletonRefs = ["http://meshmoon.eu.scenes.2.s3.amazonaws.com/mediateam-b452
 var meshRefs = ["http://meshmoon.eu.scenes.2.s3.amazonaws.com/mediateam-b4527d/test2/avatars/avatar-blue/avatar-blue.mesh",
 	"http://meshmoon.eu.scenes.2.s3.amazonaws.com/mediateam-b4527d/test2/avatars/avatar-green/avatar-green.mesh",
 		"http://meshmoon.eu.scenes.2.s3.amazonaws.com/mediateam-b4527d/test2/avatars/avatar-purple/avatar-purple.mesh"];
-
-
+var gwalkToDestination = false;
+var globalEntity;
+var globalLat;
+var globalLon;
 var currentLat = 0;
 var currentLon = 0;	 
 var interval = 0;
 frame.Updated.connect(Update);
 var appearance;
 
-var myHandler = function (myAsset) {
+var myHandler = function (myAsset, frametime) {
 	myAsset.name = "asset";
     //Checker for null value and empty json.
     if (myAsset.RawData() == [] || myAsset.RawData() == "")
@@ -38,7 +40,7 @@ var myHandler = function (myAsset) {
 
     var data = JSON.parse(myAsset.RawData());
     for(var i=0; i<data.length; ++i) {
-        addAvatar(data[i]);
+        addAvatar(data[i], frametime);
     }
     // Forget the disk asset so it wont be returned from cache next time you do the same request
     //asset.ForgetAsset(myAsset.name, true);
@@ -72,15 +74,88 @@ var isAvatarActive = function() {
      });  
 }
 
+var walkToDestination = function (frametime) {
+	if (!globalEntity) return;
+	globalEntity.animationcontroller.EnableExclusiveAnimation('walk', true, 1, 1, false);
+
+	var totalLat=0;
+    var totalLon=0;
+    var ratioLat;
+    var ratioLon; 
+    var tm = globalEntity.placeable.transform;
+
+    //Make relative values for walking.
+    var relativeLon = globalLon - globalEntity.placeable.Position().x;
+    var relativeLat = globalLat - globalEntity.placeable.Position().z;
+
+    //Check ratio to walk
+    if (Math.abs(relativeLat) >= Math.abs(relativeLon)) {
+        ratioLon = Math.abs(relativeLon / relativeLat);
+        ratioLat = 1;
+    } else {
+        ratioLat = Math.abs(relativeLat / relativeLon);
+        ratioLon = 1;
+    }
+
+
+    //Moving the police.
+    var time = frametime;
+    var speed = 2.0; //Can be adjusted to a different value later.
+    //Wher are we now.
+    var yNow = globalEntity.placeable.Position().y;
+    var xNow = globalEntity.placeable.Position().x;
+    var zNow = globalEntity.placeable.Position().z;
+
+    //Movement.
+    var lats = speed * time * ratioLat;
+    var lons = speed * time * ratioLon;
+
+    //Check in which quarter we are moving into.
+    if (relativeLon >= 0) var finalMovementX = xNow + lons;
+    else var finalMovementX = xNow - lons;
+
+    if (relativeLat >= 0) var finalMovementZ = zNow + lats;
+    else var finalMovementZ = zNow - lats;
+
+    //Add movement value to total position value.
+    totalLat += lats;
+    totalLon += lons;
+    tm.pos.x = finalMovementX;
+    tm.pos.z = finalMovementZ;
+
+    //Assign value to script owner - Police bot
+   	globalEntity.placeable.transform = tm;
+    //Check if we have reached goal and assign value to global parameter, so we can monitor 
+    //  easily the functionality.
+    if (totalLat > Math.abs(relativeLat) || totalLon > Math.abs(relativeLon)) {
+        reachedGoal = true;
+        totalLat = 0;
+        totalLon = 0;
+        globalEntity.animationcontroller.EnableExclusiveAnimation('stand', true, 1, 1, false);
+        gwalkToDestination = false;
+    } else
+        reachedGoal = false;
+}
+
 /* Function for moving avatar when position changes. */
-var moveAvatar = function(user) {
+var moveAvatar = function(user, frametime) {
 	//0 , 0 on 3d map.
 	var latZero =  65.012115;
 	var lonZero = 25.473323;
-
-	//Testvalues for Gina Tricot, Oulu
 	var lat = 65.011802;
 	var lon = 25.472868;
+
+
+	//Later change to this:
+	/* var lat = user.latitude;
+		var lon = user.longitude; */
+	var lat = 65.012119;
+	var lon =  25.473369;
+	var lat = 65.012062;
+	var lon = 25.473599;
+
+
+	//Testvalues for Gina Tricot, Oulu
 
 	var avatar = scene.EntityByName(user.username);
 
@@ -101,6 +176,18 @@ var moveAvatar = function(user) {
 	if (dlat > 0)
 		latitudeInMeters = -latitudeInMeters;
 
+	var dist = Math.sqrt(Math.pow((longitudeInMeters - avatar.placeable.Position().x), 2) + 
+    	Math.pow((latitudeInMeters - avatar.placeable.Position().z), 2));
+
+	if (dist < 20 && avatar) {
+		globalEntity = avatar;
+		globalLat = latitudeInMeters;
+		globalLon = longitudeInMeters;
+		gwalkToDestination = true;
+		return;
+	}
+
+
 	var transform = avatar.placeable.transform;
 
 	transform.pos.x = longitudeInMeters;
@@ -110,7 +197,7 @@ var moveAvatar = function(user) {
 }
 
 
-var addAvatar = function(user){
+var addAvatar = function(user, frametime){
 	//Check if player is on ?active list.
 	var isSucceed = isAvatarActive();
 	if(isSucceed == false) return;
@@ -119,7 +206,7 @@ var addAvatar = function(user){
 
 	//If player is already in the scene.
 	if (scene.EntityByName(user.username)) {
-		moveAvatar(user);
+		moveAvatar(user, frametime);
 		return;
 	}
 
@@ -235,16 +322,17 @@ function checkAnims(myAsset) {
     var data = JSON.parse(myAsset.RawData());
     for(var i=0; i<data.length; ++i) {
         if (scene.EntityByName(data[i].username)) {
+        	if (scene.EntityByName(data[i].username).animationcontroller.GetAvailableAnimations().length > 0)
+				scene.EntityByName(data[i].username).placeable.visible = true;        
         	//Check if is spraying, dont activate anymore, let spray anim go first.
         	if (scene.EntityByName(data[i].username).animationcontroller.GetActiveAnimations().length > 0)
         		return;
         	if (scene.EntityByName(data[i].username).dynamiccomponent.GetAttribute('spraying'))
         		return;
-        	
+
         	scene.EntityByName(data[i].username).animationcontroller.EnableExclusiveAnimation('stand', true,0,0, false);
 
-        	if (scene.EntityByName(data[i].username).animationcontroller.GetAvailableAnimations().length > 0)
-				scene.EntityByName(data[i].username).placeable.visible = true;        
+        	
 		}
     }
     // Forget the disk asset so it wont be returned from cache next time you do the same request
@@ -252,15 +340,18 @@ function checkAnims(myAsset) {
 
 //TODO: make function that removes entities that are not on the ?active list.
 
-function Update () {
+function Update (frametime) {
     if (server.IsRunning()) {
         //GET active users
         if (interval > 50) {
             var transfer = asset.RequestAsset("http://vm0063.virtues.fi/gangsters/?active", "Binary", true);
             transfer.Succeeded.connect(function(){
-            	myHandler(transfer);
+            	myHandler(transfer, frametime);
             	checkAnims(transfer);
-            });  
+            });
+
+            if (gwalkToDestination) 
+            	walkToDestination(frametime); 
             interval = 0; 
 
         } else 
