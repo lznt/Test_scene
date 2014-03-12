@@ -118,7 +118,7 @@ function newDestination(destination, frametime) {
 }
 
 
-
+//Parse .obj file verticles into an array so we can use it as the Police pathway.
 function parseObjData(data) {
     //Variables for the function to handle data from server.
     var objText = data.RawData();
@@ -152,7 +152,10 @@ function parseObjData(data) {
 //Function for bot to bust players that are spraying and within 30m. If you want to change the distance needed to bust
 //  change 30 on line 164.
 function bustPlayers() {
-
+    /*var transform = this.me.placeable.transform;
+    transform.pos.y = 9.9;
+    this.me.placeable.transform = transform;
+    */
     var Players = scene.EntitiesOfGroup('Player');
 
     for (var i in Players) {
@@ -187,33 +190,38 @@ function bustAndUpload(players) {
                 var player = json[i];
         }
     }
-
+    //The player busted JSON data is modified and REX is doing animations for busting.
     if (player) {
         player.bustedviapolice = 1;
         player.points -= 30;
         player.busts += 1;
         var json = JSON.stringify(player);
         var qByteJson = EncodeString('UTF-8', json);
+
+        //Animation Code for Police and player.
+        this.me.animationcontroller.PlayAnim('busted', 0, 'busted');
         playerToBeBusted.dynamiccomponent.SetAttribute('spraying', false);
-        var storageURL = "http://vm0063.virtues.fi/";
-        var storageName = "busting";
 
-        var myStorage = asset.DeserializeAssetStorageFromString("name=" + storageName + ";src=" + storageURL
-            + ";type=HttpAssetStorage;", false);
-        var uploadPath = "gangsters";
-        var uploadTransfer = asset.UploadAssetFromFileInMemory(qByteJson, storageName, uploadPath);
-        uploadTransfer.Completed.connect(this, function(transfer){
-            Log("Completed " + transfer.AssetRef());
-
+        playerToBeBusted.animationcontroller.EnableExclusiveAnimation('busted', false, 1, 1, false);
+        playerToBeBusted.animationcontroller.AnimationFinished.connect(function(){
+            //playerToBeBusted.animationcontroller.PlayLoopedAnim('stand', 0, 'stand');
+            this.me.animationcontroller.StopAllAnims(0);
+            this.me.animationcontroller.PlayLoopedAnim('walk', 0, 'walk');
         });
 
-        uploadTransfer.Failed.connect(this, function(transfer){
-            Log("UploadTransfer failed " + transfer.AssetRef());
-        });
-    
+        //This has to be checked from Jonne ASAP, maybe a bug he made?
+        /*http.client.Get("http://www.service.com/my/status")
+        .SetQueryItem("name", "John Doe")
+        .SetQueryItem("id", "52")
+        .SetRequestHeader("secret-key", "secret")
+        .SetUserAgent("tester")
+        ).Finished.connect(function(req, status, error) {
+            console.LogInfo("Request " + req.method + " " + req.toString() + " completed with status " + status);
+        });*/
     }
 }
 
+/* Might not be needed anymore in the future. Check from Jonne */
 function QByteArrayToString(qbytearray)
 {
     var ts = new QTextStream(qbytearray, QIODevice.ReadOnly);

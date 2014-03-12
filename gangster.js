@@ -72,74 +72,95 @@ var isAvatarActive = function() {
      });  
 }
 
-var addAvatar = function(user){
-	var avatarEntityName = user.username;
-	var latLon = [user.latitude, user.longitude];
-	var isSucceed = isAvatarActive();
-	if(isSucceed == false)
-		return;
-	//If entity already exists in view
-	if (scene.EntityByName(avatarEntityName)) {
-		var avatarEntity = scene.EntityByName(avatarEntityName);
+/* Function for moving avatar when position changes. */
+var moveAvatar = function(user) {
+	//0 , 0 on 3d map.
+	var latZero =  65.012115;
+	var lonZero = 25.473323;
 
-		if (avatarEntity.dynamiccomponent.GetAttribute('spraying') == true)
-			return;
+	//Testvalues for Gina Tricot, Oulu
+	var lat = 65.011802;
+	var lon = 25.472868;
+
+	var avatar = scene.EntityByName(user.username);
+
+	var longitudeInMeters = CalcLong(lonZero, lon, latZero, lat);
+	var latitudeInMeters = CalcLat(latZero, lat);
+	var dlon = lon - lonZero;
+	var dlat = lat - latZero;
+
+	if (latitudeInMeters == currentLat && longitudeInMeters == currentLon) {
+		return;
 	} else {
-		//Set wanted properties for avatar.
-		var avatarEntity = scene.CreateEntity(scene.NextFreeId(), ["RigidBody", "Avatar", "Mesh", "Script", "Placeable", "AnimationController", "DynamicComponent"]);
-		avatarEntity.SetTemporary(true); // We never want to save the avatar entities to disk.               
-		avatarEntity.SetName(avatarEntityName);
-		avatarEntity.SetDescription(avatarEntityName);
-		avatarEntity.group = "Player";
-		avatarEntity.dynamiccomponent.CreateAttribute('bool', 'spraying');
-		avatarEntity.rigidbody.mass = 2;
-		avatarEntity.placeable.visible = false;		
-		
-		//Put right gang color for the player.
-		if (user.color == "green") {			
-			avatarEntity.mesh.materialRefs = new Array(materialRefs[1]);
-			avatarEntity.mesh.meshRef = meshRefs[1];
-			avatarEntity.mesh.skeletonRef = skeletonRefs[1];
-		} else if (user.color == "blue") {
-			avatarEntity.mesh.meshRef = meshRefs[0];
-			avatarEntity.mesh.materialRefs = new Array(materialRefs[0]);
-			avatarEntity.mesh.skeletonRef = skeletonRefs[0];
-		} else if (user.color == "purple") {
-			avatarEntity.mesh.meshRef = meshRefs[2];
-			avatarEntity.mesh.materialRefs = new Array(materialRefs[2]);
-			avatarEntity.mesh.skeletonRef = skeletonRefs[2];
-		}
-		
-		//Set angularfactor to 0 0 0, so player wont fall down.
-		avatarEntity.rigidbody.angularFactor = new float3(0,0,0);
-		var script = avatarEntity.script;
-		//Add player script to all players.
-		script.className = "SAGScripts.Player";
-		script.runOnLoad = true;
+		currentLat = latitudeInMeters;
+		currentLon = longitudeInMeters;
 	}
+
+	if (dlon < 0) 
+		longitudeInMeters = -longitudeInMeters;
+	if (dlat > 0)
+		latitudeInMeters = -latitudeInMeters;
+
+	var transform = avatar.placeable.transform;
+
+	transform.pos.x = longitudeInMeters;
+	transform.pos.z = latitudeInMeters;
+
+	avatar.placeable.transform = transform;
+}
+
+
+var addAvatar = function(user){
+	//Check if player is on ?active list.
+	var isSucceed = isAvatarActive();
+	if(isSucceed == false) return;
+
+	var avatarEntityName = user.username;
+
+	//If player is already in the scene.
+	if (scene.EntityByName(user.username)) {
+		moveAvatar(user);
+		return;
+	}
+
+	var latLon = [user.latitude, user.longitude];
+	//Set wanted properties for avatar.
+	var avatarEntity = scene.CreateEntity(scene.NextFreeId(), ["RigidBody", "Avatar", "Mesh", "Script", "Placeable", "AnimationController", "DynamicComponent"]);
+	avatarEntity.SetTemporary(true); // We never want to save the avatar entities to disk.               
+	avatarEntity.SetName(avatarEntityName);
+	avatarEntity.SetDescription(avatarEntityName);
+	avatarEntity.group = "Player";
+	avatarEntity.rigidbody.mass = 2;
+	avatarEntity.dynamiccomponent.CreateAttribute('bool', 'spraying');
+	avatarEntity.placeable.visible = false;
+	
+	
+	//Put right gang color for the player.
+	if (user.color == "green") {			
+		avatarEntity.mesh.materialRefs = new Array(materialRefs[1]);
+		avatarEntity.mesh.meshRef = meshRefs[1];
+		avatarEntity.mesh.skeletonRef = skeletonRefs[1];
+	} else if (user.color == "blue") {
+		avatarEntity.mesh.meshRef = meshRefs[0];
+		avatarEntity.mesh.materialRefs = new Array(materialRefs[0]);
+		avatarEntity.mesh.skeletonRef = skeletonRefs[0];
+	} else if (user.color == "purple") {
+		avatarEntity.mesh.meshRef = meshRefs[2];
+		avatarEntity.mesh.materialRefs = new Array(materialRefs[2]);
+		avatarEntity.mesh.skeletonRef = skeletonRefs[2];
+	}
+	
+	//Set angularfactor to 0 0 0, so player wont fall down.
+	avatarEntity.rigidbody.angularFactor = new float3(0,0,0);
+	var script = avatarEntity.script;
+	//Add player script to all players.
+	script.className = "SAGScripts.Player";
+	script.runOnLoad = true;
+
 
 	// Set starting position to match the current position in City.
 	//var lat = user.latitude;
 	//var lon = user.longitude;
-	
-
-
-	//insert player only once to the same spot.
-	if (latLon[0] == currentLat && latLon[1] == currentLon) {
-		return;
-	} else {
-		//For testing, also can be used in final if wanted.
-		currentLat = latLon[0];
-		currentLon = latLon[1];
-		//These values will be freed when testing actual gps coordinates
-		//currentLat = lat;
-		//currentLon = lon;
-	}
-	//If coordinates are 0,0 add 0,0 in map so avatar is still displayed "somwehere" atleast for now.
-	if (currentLat == 0 || currentLon == 0) {
-		lat = 65.012115;
-		lon = 25.473323;
-	}
 
 	//Test values GinaTricot oulu.
 	var lat = 65.011802;
@@ -154,7 +175,6 @@ var addAvatar = function(user){
 	//var lon = 25.47171;
 	var longitudeInMeters = CalcLong(lonZero, lon, latZero, lat);
 	var latitudeInMeters = CalcLat(latZero, lat);
-
 	var dlon = lon - lonZero;
 	var dlat = lat - latZero;
 
@@ -162,17 +182,16 @@ var addAvatar = function(user){
 		longitudeInMeters = -longitudeInMeters;
 	if (dlat > 0)
 		latitudeInMeters = -latitudeInMeters;
-	Log(latitudeInMeters + " -- " + longitudeInMeters);
-	avatarEntity.placeable.visible = true;
+
 	var placeable = avatarEntity.placeable;
 	var transform = placeable.transform;
 	transform.pos.x = longitudeInMeters;
-	transform.pos.y = 9,9; //Highest of Oulu3D
+	transform.pos.y = 11; //Highest of Oulu3D
 	transform.pos.z = latitudeInMeters;
 	placeable.transform = transform;
 
-	if (avatarEntity.dynamiccomponent.GetAttribute('spraying') == true)
-		avatarEntity.animationcontroller.StopAllAnims();
+	Log(latitudeInMeters + " Final Values " + longitudeInMeters);
+
 }
 
 
@@ -219,12 +238,14 @@ function checkAnims(myAsset) {
         	//Check if is spraying, dont activate anymore, let spray anim go first.
         	if (scene.EntityByName(data[i].username).animationcontroller.GetActiveAnimations().length > 0)
         		return;
-        	Log(scene.EntityByName(data[i].username).dynamiccomponent.GetAttribute('spraying'));
-
         	if (scene.EntityByName(data[i].username).dynamiccomponent.GetAttribute('spraying'))
         		return;
-        	scene.EntityByName(data[i].username).animationcontroller.PlayLoopedAnim('stand', 0, 'stand');
-        }
+        	
+        	scene.EntityByName(data[i].username).animationcontroller.EnableExclusiveAnimation('stand', true,0,0, false);
+
+        	if (scene.EntityByName(data[i].username).animationcontroller.GetAvailableAnimations().length > 0)
+				scene.EntityByName(data[i].username).placeable.visible = true;        
+		}
     }
     // Forget the disk asset so it wont be returned from cache next time you do the same request
 }

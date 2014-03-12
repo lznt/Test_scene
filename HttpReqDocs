@@ -1,0 +1,31 @@
+    /// GET
+    http.client.Get("http://www.service.com/my/status")
+        .SetQueryItem("name", "John Doe")
+        .SetQueryItem("id", "52")
+        .SetRequestHeader("secret-key", "secret")
+        .SetUserAgent("tester")
+    ).Finished.connect(function(req, status, error) {
+        console.LogInfo("Request " + req.method + " " + req.toString() + " completed with status " + status);
+    });
+
+    /// POST
+    http.client.Post("http://www.service.com/post/json", JSON.stringify({ name : "John Doe", id : 52, waiting : true })
+        .SetQueryItem("name", "John Doe")
+        .SetQueryItem("id", "52")
+        .SetRequestHeader("secret-key", "secret")
+        .SetUserAgent("tester")
+    ).Finished.connect(function(req, status, error) {
+         console.LogInfo("Request " + req.method + " " + req.toString() + " completed with status " + status);
+    });
+
+    /// Others with same API
+    http.client.Put(...)
+    http.client.Delete(...)
+    http.client.Patch(...)
+    http.client.Options(...)
+
+    // Reply
+    (...).Finished.connect(function(req, status, error) {
+         var obj = JSON.parse(req.body); // body as QString
+	 req.bodyBytes // body as QByteArray
+    });
