@@ -4,6 +4,10 @@
 // Include our utils script that has asset storage and bytearray utils etc.
 // !ref: http://meshmoon.data.s3.amazonaws.com/app/lib/admino-utils-common-deploy.js, Script
 // !ref: http://meshmoon.data.s3.amazonaws.com/app/lib/class.js, Script
+var currentLatitude = null;
+var currentLongitude = null;
+var currentVenues = null;
+
 function Player(entity, comp) {
 	this.me = entity;
 	engine.IncludeFile("http://meshmoon.data.s3.amazonaws.com/app/lib/class.js");
@@ -25,28 +29,27 @@ function Player(entity, comp) {
 
 //Get data from server as JSON and iterate it, then call checkVenue for further proceedings. (Checked)
 function checkIfPlayerIsSpraying(venues) {
-	if (interval > 50) {
-		venues.name = "asset";
-		//Check if data on server has changed or not. No need to parse same data over and over again.
-		if (String(venues.RawData()) == currentData) {
-			interval = 0;
-			return;
-		} else
-    			currentData = venues.RawData();
+	//Make sure we dont parse data if it has not been changed.
+	if (currentVenues == venues.RawData())
+		return;
+	else
+		currentVenues = venues.RawData();
 
-    		//Make sure venuedata is parseable.
-    		var data = JSON.parse(venues.RawData());
-    		for(var i=0; i<data.length; ++i) {
-    			haxMyMax(data[i]);
-   			}
-   			//asset.ForgetAsset(venues.name, true);
-		interval = 0;
 
-	} else
-		interval ++;  
+	venues.name = "asset";
+	//Check if data on server has changed or not. No need to parse same data over and over again.
+		//Make sure venuedata is parseable.
+	var data = JSON.parse(venues.RawData());
+	for(var i=0; i<data.length; ++i) {
+		haxMyMax(data[i]);
+	}
+		//asset.ForgetAsset(venues.name, true);
+	
 }
 //Function that collects data from venueData and requests more data from server (gangsters)
 function haxMyMax (venueData) {
+	//Get name for venue.
+	var venueName = venueData.name;
 	//Gangster currently spraying the venue.
 	var gangsterSpraying = venueData.gangsterSpraying;
 	//Latitude and longitude of current venue.
@@ -58,27 +61,26 @@ function haxMyMax (venueData) {
 	var players = asset.RequestAsset("http://vm0063.virtues.fi/gangsters/","Binary", true);
 	//If we got data we call checkVenueAndPlayer
 	players.Succeeded.connect(function(){
-		checkVenueAndPlayer(players, gangsterSpraying, latAndLon, spraying);
+		checkVenueAndPlayer(players, gangsterSpraying, latAndLon, spraying, venueName);
 	});
 }
 
 
 //This function will check if player is actually spraying this venue and if he exists in the scene(is active or not)
-function checkVenueAndPlayer(players, gangsterSpraying, latAndLon, spraying) {
+function checkVenueAndPlayer(players, gangsterSpraying, latAndLon, spraying, venueName) {
 	if (players)
 		players.name = 'playersAsset';
 	var data = JSON.parse(players.RawData());
     	for(var i=0; i<data.length; ++i) {
     		//If the ID from venue matches to this current player.
     		if (data[i].id == gangsterSpraying) {
-    			Log(data[i].username + " and " + gangsterSpraying);
     			var player = scene.EntityByName(data[i].username);    			
     			//If player exists in scene.
     			if (player) {
     				Log("Is someone spraying ? " + player.name);
     				player.dynamiccomponent.SetAttribute("spraying", true);
     				//Call moveplayer with desired data.
-    				movePlayer(player, latAndLon);
+    				movePlayer(player, latAndLon, venueName);
     			}
     		}
     	}
@@ -90,12 +92,10 @@ Player.prototype.OnScriptDestroyed = function() {
 	frame.Updated.disconnect(this, this.Update);
 }
 
-function movePlayer(player, latAndLon) {
+function movePlayer(player, latAndLon, venueName) {
 	//0,0 on the map. 
 	var latZero =  65.012115;
 	var lonZero = 25.473323;
-
-	Log(latAndLon);
 
 	//Near letku puisto for testing.
 	//latAndLon[0] = 65.012981;
@@ -120,27 +120,34 @@ function movePlayer(player, latAndLon) {
 	if (dlat > 0)
 		latitudeInMeters = -latitudeInMeters;
 
+
 	var placeable = player.placeable;
 	var transform = placeable.transform;
+
+	var plane = scene.EntityByName("robo");
+	var quadOfPlayer = player.placeable.transform.Orientation();
+	var angleBetween = quadOfPlayer.AngleBetween(plane.placeable.transform.Orientation());
+	Log(angleBetween + " Angle between plane and player " + plane);
+	Log (plane.placeable.transform.Orientation());
+	Log (quadOfPlayer);
+
+	transform.SetOrientation(new float3(0,0,0), angleBetween);
 	transform.pos.x = longitudeInMeters;
 	transform.pos.y = 11; //Highest of Oulu3D
 	transform.pos.z = latitudeInMeters;
 	placeable.transform = transform;
 
 	//Enable spraying animation.
-	player.animationcontroller.StopAllAnims(0);
-	player.animationcontroller.PlayAnim('spray', 2, 'spray');
-
+	player.animationcontroller.EnableExclusiveAnimation('spray', false, 1, 1, false);
 
 	//When animation has finished stop animations and play stand animation.
 	player.animationcontroller.AnimationFinished.connect(function(){
-		player.animationcontroller.StopAllAnims(4);
 		player.dynamiccomponent.SetAttribute('spraying', false);
+
 		//Do this later back on when the phone actually gives valid gps info.
-		player.animationcontroller.PlayLoopedAnim('stand', 4, 'stand');
+		player.animationcontroller.EnableExclusiveAnimation('stand', true, 1, 1, false);
 	});
 }	
-
 
 function CalcLong(lon1, lon2, lat1, lat2){
 	var radius = 6371; // km
