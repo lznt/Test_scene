@@ -125,13 +125,11 @@ function movePlayer(player, latAndLon, venueName) {
 	var transform = placeable.transform;
 
 	var plane = scene.EntityByName("robo");
-	var quadOfPlayer = player.placeable.transform.Orientation();
-	var angleBetween = quadOfPlayer.AngleBetween(plane.placeable.transform.Orientation());
-	Log(angleBetween + " Angle between plane and player " + plane);
-	Log (plane.placeable.transform.Orientation());
-	Log (quadOfPlayer);
 
-	transform.SetOrientation(new float3(0,0,0), angleBetween);
+	player.placeable.SetOrientation(lookAt(player.placeable.transform.pos, plane.placeable.transform.pos));
+	Log(lookAt(player.placeable.transform.pos, plane.placeable.transform.pos).Angle()* (180/Math.PI));
+	/* Why does not work!!!! */
+	transform.rot.y = lookAt(player.placeable.transform.pos, plane.placeable.transform.pos).Angle()* (180/Math.PI);
 	transform.pos.x = longitudeInMeters;
 	transform.pos.y = 11; //Highest of Oulu3D
 	transform.pos.z = latitudeInMeters;
@@ -148,6 +146,18 @@ function movePlayer(player, latAndLon, venueName) {
 		player.animationcontroller.EnableExclusiveAnimation('stand', true, 1, 1, false);
 	});
 }	
+
+
+function lookAt(source, destination)
+    {
+        var targetLookAtDir = new float3();
+        targetLookAtDir.x = destination.x - source.x;
+        targetLookAtDir.y = destination.y - source.y;
+        targetLookAtDir.z = destination.z - source.z;
+        targetLookAtDir.Normalize();
+
+        return Quat.LookAt(scene.ForwardVector(), targetLookAtDir, scene.UpVector(), scene.UpVector());
+    }
 
 function CalcLong(lon1, lon2, lat1, lat2){
 	var radius = 6371; // km

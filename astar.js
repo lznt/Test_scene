@@ -208,15 +208,11 @@ function bustAndUpload(players) {
             this.me.animationcontroller.StopAllAnims(0);
             this.me.animationcontroller.PlayLoopedAnim('walk', 0, 'walk');
         });
-
-        //This has to be checked from Jonne ASAP, maybe a bug he made?
-        /*http.client.Get("http://www.service.com/my/status")
-        .SetQueryItem("name", "John Doe")
-        .SetQueryItem("id", "52")
-        .SetRequestHeader("secret-key", "secret")
-        .SetUserAgent("tester")
-        ).Finished.connect(function(req, status, error) {
-            console.LogInfo("Request " + req.method + " " + req.toString() + " completed with status " + status);
+        /*http.client.Post("http://vm0063.virtues.fi/gangsters", json)
+        .Finished.connect(function(req, status, error) {
+             console.LogInfo(req.ResponseStatus() + " for " + req.method + " to " + req.UrlString());
+             if (status != 200)
+                console.LogError("POST failed!");
         });*/
     }
 }

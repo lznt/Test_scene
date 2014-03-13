@@ -149,11 +149,10 @@ var moveAvatar = function(user, frametime) {
 	//Later change to this:
 	/* var lat = user.latitude;
 		var lon = user.longitude; */
-	var lat = 65.012119;
-	var lon =  25.473369;
 	var lat = 65.012062;
 	var lon = 25.473599;
-
+	var lat = 65.012119;
+	var lon =  25.473369;
 
 	//Testvalues for Gina Tricot, Oulu
 
@@ -350,12 +349,13 @@ function Update (frametime) {
             	checkAnims(transfer);
             });
 
-            if (gwalkToDestination) 
-            	walkToDestination(frametime); 
+            
             interval = 0; 
 
         } else 
             interval++;
+        if (gwalkToDestination) 
+            	walkToDestination(frametime); 
     } else {
     }
 }
