@@ -204,20 +204,18 @@ function bustAndUpload(players) {
 
         playerToBeBusted.animationcontroller.EnableExclusiveAnimation('busted', false, 1, 1, false);
         playerToBeBusted.animationcontroller.AnimationFinished.connect(function(){
-            //playerToBeBusted.animationcontroller.PlayLoopedAnim('stand', 0, 'stand');
             this.me.animationcontroller.StopAllAnims(0);
             this.me.animationcontroller.PlayLoopedAnim('walk', 0, 'walk');
         });
-        /*http.client.Post("http://vm0063.virtues.fi/gangsters", json)
-        .Finished.connect(function(req, status, error) {
-             console.LogInfo(req.ResponseStatus() + " for " + req.method + " to " + req.UrlString());
-             if (status != 200)
-                console.LogError("POST failed!");
-        });*/
+		http.client.Patch("http://vm0063.virtues.fi/gangsters/" + player.id, json, "application/json")
+		.Finished.connect(function(req, status, error) {
+			  console.LogInfo(req.ResponseStatus() + " for " + req.method + " to " + req.UrlString());
+			  if (status != 200)
+				 console.LogError("POST failed!");
+		 });
     }
 }
 
-/* Might not be needed anymore in the future. Check from Jonne */
 function QByteArrayToString(qbytearray)
 {
     var ts = new QTextStream(qbytearray, QIODevice.ReadOnly);

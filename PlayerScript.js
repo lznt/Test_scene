@@ -125,15 +125,16 @@ function movePlayer(player, latAndLon, venueName) {
 	var transform = placeable.transform;
 
 	var plane = scene.EntityByName("robo");
-
-	player.placeable.SetOrientation(lookAt(player.placeable.transform.pos, plane.placeable.transform.pos));
-	Log(lookAt(player.placeable.transform.pos, plane.placeable.transform.pos).Angle()* (180/Math.PI));
-	/* Why does not work!!!! */
-	transform.rot.y = lookAt(player.placeable.transform.pos, plane.placeable.transform.pos).Angle()* (180/Math.PI);
+	var angle = Math.atan2(plane.placeable.Position().x - placeable.Position().x, plane.placeable.Position().z - placeable.Position().x);
+	angle = angle * (180/Math.PI);
+	Log(angle);
+	transform.rot.y = angle;
 	transform.pos.x = longitudeInMeters;
 	transform.pos.y = 11; //Highest of Oulu3D
 	transform.pos.z = latitudeInMeters;
+	placeable.SetOrientation(lookAt(player.placeable.transform.pos, plane.placeable.transform.pos));
 	placeable.transform = transform;
+
 
 	//Enable spraying animation.
 	player.animationcontroller.EnableExclusiveAnimation('spray', false, 1, 1, false);
@@ -155,7 +156,7 @@ function lookAt(source, destination)
         targetLookAtDir.y = destination.y - source.y;
         targetLookAtDir.z = destination.z - source.z;
         targetLookAtDir.Normalize();
-
+		//return Quat.RotateFromTo(source, destination);
         return Quat.LookAt(scene.ForwardVector(), targetLookAtDir, scene.UpVector(), scene.UpVector());
     }
 
