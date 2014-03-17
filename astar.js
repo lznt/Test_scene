@@ -35,16 +35,28 @@ frame.Updated.connect(Update);
 function Update (frametime) {
     if (server.IsRunning()) {
         bustPlayers();
-        //if(pathWays)
-            //newDestination(pathWays, frametime);
+        /*if(pathWays)
+            newDestination(pathWays, frametime);*/
     }
     
+}
+
+function lookAt(source, destination) {
+        var targetLookAtDir = new float3();
+        targetLookAtDir.x = destination.x - source.x;
+        targetLookAtDir.y = destination.y - source.y;
+        targetLookAtDir.z = destination.z - source.z;
+        targetLookAtDir.Normalize();
+        //return Quat.RotateFromTo(source, destination);
+        return Quat.LookAt(scene.ForwardVector(), targetLookAtDir, scene.UpVector(), scene.UpVector());
 }
 
 //police movement script. If you want to edit the movement change line 55 for the space in which the bot
 //  can move. Now its from 15m to 20m distance. Also you can change speed of the police man by changing var speed.
 function newDestination(destination, frametime) {
     //If bot reached its goal, random a new goal and check that its valid.
+    var tm = this.me.placeable.transform;
+
     if (reachedGoal) {
         var nextDesti = destination[random(destination.length)];
         xNow = nextDesti[0];
@@ -63,7 +75,6 @@ function newDestination(destination, frametime) {
     var totalLon=0;
     var ratioLat;
     var ratioLon; 
-    var tm = this.me.placeable.transform;
 
     //Make relative values for walking.
     var relativeLon = nextDest[0] - this.me.placeable.Position().x;
@@ -103,10 +114,11 @@ function newDestination(destination, frametime) {
     totalLon += lons;
     tm.pos.x = finalMovementX;
     tm.pos.z = finalMovementZ;
-
     //Assign value to script owner - Police bot
+    
     this.me.placeable.transform = tm;
-
+    this.me.placeable.SetOrientation(lookAt(this.me.placeable.transform.pos, 
+            new float3(xNow, this.me.placeable.transform.pos.y, zNow)));
     //Check if we have reached goal and assign value to global parameter, so we can monitor 
     //  easily the functionality.
     if (totalLat > Math.abs(relativeLat) || totalLon > Math.abs(relativeLon)) {
@@ -169,6 +181,7 @@ function bustPlayers() {
         if (Players[i].dynamiccomponent.GetAttribute('spraying')) {
                 //Get data from server, and change it so that the player is busted via police now.
                 if (distance < 30) {
+
                     playerToBeBusted = Players[i];
                     var transfer = asset.RequestAsset("http://vm0063.virtues.fi/gangsters/","Binary", true);
                     transfer.Succeeded.connect(bustAndUpload);
@@ -199,15 +212,18 @@ function bustAndUpload(players) {
         var qByteJson = EncodeString('UTF-8', json);
 
         //Animation Code for Police and player.
+
         this.me.animationcontroller.PlayAnim('busted', 0, 'busted');
         playerToBeBusted.dynamiccomponent.SetAttribute('spraying', false);
 
+        /*playerToBeBusted.placeable.SetOrientation(lookAt(playerToBeBusted.placeable.transform.pos, 
+            this.me.placeable.transform.pos));*/
         playerToBeBusted.animationcontroller.EnableExclusiveAnimation('busted', false, 1, 1, false);
         playerToBeBusted.animationcontroller.AnimationFinished.connect(function(){
             this.me.animationcontroller.StopAllAnims(0);
             this.me.animationcontroller.PlayLoopedAnim('walk', 0, 'walk');
         });
-		http.client.Patch("http://vm0063.virtues.fi/gangsters/" + player.id, json, "application/json")
+		http.client.Put("http://vm0063.virtues.fi/gangsters/" + player.id, json, "application/json")
 		.Finished.connect(function(req, status, error) {
 			  console.LogInfo(req.ResponseStatus() + " for " + req.method + " to " + req.UrlString());
 			  if (status != 200)

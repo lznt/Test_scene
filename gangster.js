@@ -74,6 +74,16 @@ var isAvatarActive = function() {
      });  
 }
 
+function lookAt(source, destination) {
+        var targetLookAtDir = new float3();
+        targetLookAtDir.x = destination.x - source.x;
+        targetLookAtDir.y = destination.y - source.y;
+        targetLookAtDir.z = destination.z - source.z;
+        targetLookAtDir.Normalize();
+		//return Quat.RotateFromTo(source, destination);
+        return Quat.LookAt(scene.ForwardVector(), targetLookAtDir, scene.UpVector(), scene.UpVector());
+}
+
 var walkToDestination = function (frametime) {
 	if (!globalEntity) return;
 	globalEntity.animationcontroller.EnableExclusiveAnimation('walk', true, 1, 1, false);
@@ -125,6 +135,9 @@ var walkToDestination = function (frametime) {
 
     //Assign value to script owner - Police bot
    	globalEntity.placeable.transform = tm;
+   	globalEntity.placeable.SetOrientation(lookAt(globalEntity.placeable.transform.pos, 
+   			new float3(xNow, globalEntity.placeable.transform.pos.y, zNow)));
+
     //Check if we have reached goal and assign value to global parameter, so we can monitor 
     //  easily the functionality.
     if (totalLat > Math.abs(relativeLat) || totalLon > Math.abs(relativeLon)) {
@@ -142,17 +155,23 @@ var moveAvatar = function(user, frametime) {
 	//0 , 0 on 3d map.
 	var latZero =  65.012115;
 	var lonZero = 25.473323;
-	var lat = 65.011802;
-	var lon = 25.472868;
+		var lat = 65.012474;
+	var lon = 25.473893;
 
 
 	//Later change to this:
 	/* var lat = user.latitude;
 		var lon = user.longitude; */
-	var lat = 65.012062;
-	var lon = 25.473599;
+
+	var lat = 65.011802;
+	var lon = 25.472868;
+
 	var lat = 65.012119;
 	var lon =  25.473369;
+
+	var lat = 65.012062;
+	var lon = 25.473599;
+
 
 	//Testvalues for Gina Tricot, Oulu
 

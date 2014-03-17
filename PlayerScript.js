@@ -123,22 +123,22 @@ function movePlayer(player, latAndLon, venueName) {
 
 	var placeable = player.placeable;
 	var transform = placeable.transform;
-
+	//Change robo to sprayed plane
 	var plane = scene.EntityByName("robo");
-	var angle = Math.atan2(plane.placeable.Position().x - placeable.Position().x, plane.placeable.Position().z - placeable.Position().x);
-	angle = angle * (180/Math.PI);
-	Log(angle);
-	transform.rot.y = angle;
+	//var angle = Math.atan2(plane.placeable.Position().x - placeable.Position().x, plane.placeable.Position().z - placeable.Position().x);
+	//angle = angle * (180/Math.PI);
+	//Log(angle);
+
 	transform.pos.x = longitudeInMeters;
 	transform.pos.y = 11; //Highest of Oulu3D
 	transform.pos.z = latitudeInMeters;
-	placeable.SetOrientation(lookAt(player.placeable.transform.pos, plane.placeable.transform.pos));
-	placeable.transform = transform;
 
+	placeable.transform = transform;
+	placeable.SetOrientation(lookAt(player.placeable.transform.pos, new float3(0, player.placeable.transform.pos.y, 0)));
 
 	//Enable spraying animation.
 	player.animationcontroller.EnableExclusiveAnimation('spray', false, 1, 1, false);
-
+	Log(placeable.transform);
 	//When animation has finished stop animations and play stand animation.
 	player.animationcontroller.AnimationFinished.connect(function(){
 		player.dynamiccomponent.SetAttribute('spraying', false);
