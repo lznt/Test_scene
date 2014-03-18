@@ -13,6 +13,7 @@ function Player(entity, comp) {
 	engine.IncludeFile("http://meshmoon.data.s3.amazonaws.com/app/lib/class.js");
 	engine.IncludeFile("http://meshmoon.data.s3.amazonaws.com/app/lib/admino-utils-common-deploy.js");
 	SetLogChannelName("PlayerScript"); //this can be anything, but best is your aplication name
+	//Hook frame update to Update function.
 	frame.Updated.connect(this, this.Update);
 	//Interval to limit update to 2secs
 	var interval;
@@ -27,7 +28,7 @@ function Player(entity, comp) {
 }
 
 
-//Get data from server as JSON and iterate it, then call checkVenue for further proceedings. (Checked)
+//Get data from server as JSON and iterate it, then call saveVenueGetGangsters for further proceedings. (Checked)
 function checkIfPlayerIsSpraying(venues) {
 	//Make sure we dont parse data if it has not been changed.
 	if (currentVenues == venues.RawData())
@@ -35,19 +36,16 @@ function checkIfPlayerIsSpraying(venues) {
 	else
 		currentVenues = venues.RawData();
 
-
 	venues.name = "asset";
-	//Check if data on server has changed or not. No need to parse same data over and over again.
-		//Make sure venuedata is parseable.
 	var data = JSON.parse(venues.RawData());
 	for(var i=0; i<data.length; ++i) {
-		haxMyMax(data[i]);
+		saveVenueGetGangsters(data[i]);
 	}
 		//asset.ForgetAsset(venues.name, true);
 	
 }
 //Function that collects data from venueData and requests more data from server (gangsters)
-function haxMyMax (venueData) {
+function saveVenueGetGangsters (venueData) {
 	//Get name for venue.
 	var venueName = venueData.name;
 	//Gangster currently spraying the venue.
@@ -59,7 +57,7 @@ function haxMyMax (venueData) {
 	//All players in the system, this because ?active is not always on time or can remove players really fast
 	// if they idle.
 	var players = asset.RequestAsset("http://vm0063.virtues.fi/gangsters/","Binary", true);
-	//If we got data we call checkVenueAndPlayer
+	//If we got data we call checkVenueAndPlayer and pass needed variables.
 	players.Succeeded.connect(function(){
 		checkVenueAndPlayer(players, gangsterSpraying, latAndLon, spraying, venueName);
 	});
@@ -92,21 +90,22 @@ Player.prototype.OnScriptDestroyed = function() {
 	frame.Updated.disconnect(this, this.Update);
 }
 
+//Function to move player to the spraying destination.
+/* Variables:
+	latZero, lonZero = 0 coordinates on 3D map. 
+	longitudeInMeters, latitudeInMeters = gps coordinates to match 3d scene values with Haversine formula (CalcLong & CalcLat).
+	dlon, dlat = Check in which Quart the coordinates are.
+	latAndLon[] = array to hold in coordinates where player is moving.
+	placeable, transform = player placeable object to assign coordinates in 3d World.
+	plane = The plane to which player is spraying, saved to a variable for orientation.
+	*/
 function movePlayer(player, latAndLon, venueName) {
-	//0,0 on the map. 
 	var latZero =  65.012115;
 	var lonZero = 25.473323;
 
-	//Near letku puisto for testing.
-	//latAndLon[0] = 65.012981;
-	//latAndLon[1] = 25.473173;	
-	//Hardcoded values for testing.
-
-	//Calculate gps coordinates to match 3d scene values with Haversine.
 	var longitudeInMeters = CalcLong(lonZero, latAndLon[1], latZero, latAndLon[0]);
 	var latitudeInMeters = CalcLat(latZero, latAndLon[0]);
 	
-	//Distinguish in which quarter the new coordinates are. 
 	var dlon = latAndLon[1] - lonZero;
 	var dlat = latAndLon[0] - latZero;
 
@@ -125,30 +124,28 @@ function movePlayer(player, latAndLon, venueName) {
 	var transform = placeable.transform;
 	//Change robo to sprayed plane
 	var plane = scene.EntityByName("robo");
-	//var angle = Math.atan2(plane.placeable.Position().x - placeable.Position().x, plane.placeable.Position().z - placeable.Position().x);
-	//angle = angle * (180/Math.PI);
-	//Log(angle);
 
 	transform.pos.x = longitudeInMeters;
 	transform.pos.y = 11; //Highest of Oulu3D
 	transform.pos.z = latitudeInMeters;
 
+	//Assign new values to player placeable object.
 	placeable.transform = transform;
+
+	//Use lookAt to rotate player to look at the target.
 	placeable.SetOrientation(lookAt(player.placeable.transform.pos, new float3(0, player.placeable.transform.pos.y, 0)));
 
 	//Enable spraying animation.
 	player.animationcontroller.EnableExclusiveAnimation('spray', false, 1, 1, false);
-	Log(placeable.transform);
+
 	//When animation has finished stop animations and play stand animation.
 	player.animationcontroller.AnimationFinished.connect(function(){
 		player.dynamiccomponent.SetAttribute('spraying', false);
-
-		//Do this later back on when the phone actually gives valid gps info.
 		player.animationcontroller.EnableExclusiveAnimation('stand', true, 1, 1, false);
 	});
 }	
 
-
+//lookAt function, takes in current position and new position Y is needed to make this work.
 function lookAt(source, destination)
     {
         var targetLookAtDir = new float3();
@@ -160,6 +157,7 @@ function lookAt(source, destination)
         return Quat.LookAt(scene.ForwardVector(), targetLookAtDir, scene.UpVector(), scene.UpVector());
     }
 
+//Haversine formula calculation functions to make GPS coordinates into 3d world coordinates.
 function CalcLong(lon1, lon2, lat1, lat2){
 	var radius = 6371; // km
 	var dlat = 0;
@@ -174,6 +172,7 @@ function CalcLong(lon1, lon2, lat1, lat2){
 	return longitudeInMeters;
 }
 
+//Haversine formula calculation functions to make GPS coordinates into 3d world coordinates.
 function CalcLat(lat1, lat2){
 	var radius = 6371; //km
 
@@ -195,7 +194,6 @@ Player.prototype.Update = function(frametime) {
 		//GET venues
 	   var transfer = asset.RequestAsset("http://vm0063.virtues.fi/venues/?active", "Binary", true);
 		transfer.Succeeded.connect(checkIfPlayerIsSpraying);
-		//Monitor enemies and bust them if spraying too close.
 	} else {
 	//NOthing on client side atm.
 	}	

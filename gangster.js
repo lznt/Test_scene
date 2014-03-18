@@ -4,8 +4,6 @@
 // Include our utils script that has asset storage and bytearray utils etc.
 // !ref: http://meshmoon.data.s3.amazonaws.com/app/lib/admino-utils-common-deploy.js, Script
 // !ref: http://meshmoon.data.s3.amazonaws.com/app/lib/class.js, Script
-
-
 engine.IncludeFile("http://meshmoon.data.s3.amazonaws.com/app/lib/class.js");
 engine.IncludeFile("http://meshmoon.data.s3.amazonaws.com/app/lib/admino-utils-common-deploy.js");
 
@@ -22,6 +20,8 @@ var skeletonRefs = ["http://meshmoon.eu.scenes.2.s3.amazonaws.com/mediateam-b452
 var meshRefs = ["http://meshmoon.eu.scenes.2.s3.amazonaws.com/mediateam-b4527d/test2/avatars/avatar-blue/avatar-blue.mesh",
 	"http://meshmoon.eu.scenes.2.s3.amazonaws.com/mediateam-b4527d/test2/avatars/avatar-green/avatar-green.mesh",
 		"http://meshmoon.eu.scenes.2.s3.amazonaws.com/mediateam-b4527d/test2/avatars/avatar-purple/avatar-purple.mesh"];
+
+//Initialize global variables to be used in this script.
 var gwalkToDestination = false;
 var globalEntity;
 var globalLat;
@@ -29,9 +29,12 @@ var globalLon;
 var currentLat = 0;
 var currentLon = 0;	 
 var interval = 0;
-frame.Updated.connect(Update);
 var appearance;
 
+//Hook to update.
+frame.Updated.connect(Update);
+
+//Iterate JSON that we get from server.
 var myHandler = function (myAsset, frametime) {
 	myAsset.name = "asset";
     //Checker for null value and empty json.
@@ -54,16 +57,20 @@ var isAvatarActive = function() {
      	var json = JSON.parse(transfer.RawData());
      	var activePlayers = asset.RequestAsset("http://vm0063.virtues.fi/gangsters/?active");
      	activePlayers.Succeeded.connect(function() {
+     		//If data is empty return.
      		if (activePlayers.RawData() == "") {
      			return false;
      		}
+
      		var jsonactive = JSON.parse(activePlayers.RawData());
 
      		for (i = 0; i < jsonactive.length; i++) {
      			for (i = 0; i < json.length; i++) {
+     				//If player exists in active and /gangsters/, return true.
      				if (jsonactive.username == json.username) {
-     					return
+     					return true;
      				} else {
+     					//If player exists in scene but is not active, remove player.
 						if (scene.EntityByName(json.username))
      						scene.RemoveEntity(json.username);
      				}
@@ -74,16 +81,25 @@ var isAvatarActive = function() {
      });  
 }
 
+/* lookAt function */
 function lookAt(source, destination) {
         var targetLookAtDir = new float3();
         targetLookAtDir.x = destination.x - source.x;
         targetLookAtDir.y = destination.y - source.y;
         targetLookAtDir.z = destination.z - source.z;
         targetLookAtDir.Normalize();
-		//return Quat.RotateFromTo(source, destination);
         return Quat.LookAt(scene.ForwardVector(), targetLookAtDir, scene.UpVector(), scene.UpVector());
 }
 
+/* If distance to destination is less than 20meters, Avatar will animate and walk to destination.
+	Variables:
+	totalLat, totalLon = totals for the actual movement for every frame.
+	ratioLat, ratioLon = ratio for axis X and Z, this makes the avatar move in a stable way.
+	relativeLat, relativeLon = actual walking distance for x and z.
+	reachedGoal = boolean to determine if we have reached our destination.
+	gwalkToDestination = boolean to determine if this function will be used at all. Will be set false after we
+		get to final destination.
+ */
 var walkToDestination = function (frametime) {
 	if (!globalEntity) return;
 	globalEntity.animationcontroller.EnableExclusiveAnimation('walk', true, 1, 1, false);
@@ -107,11 +123,11 @@ var walkToDestination = function (frametime) {
         ratioLon = 1;
     }
 
-
     //Moving the police.
     var time = frametime;
     var speed = 2.0; //Can be adjusted to a different value later.
-    //Wher are we now.
+    
+    //Where are we now.
     var yNow = globalEntity.placeable.Position().y;
     var xNow = globalEntity.placeable.Position().x;
     var zNow = globalEntity.placeable.Position().z;
@@ -155,7 +171,8 @@ var moveAvatar = function(user, frametime) {
 	//0 , 0 on 3d map.
 	var latZero =  65.012115;
 	var lonZero = 25.473323;
-		var lat = 65.012474;
+
+	var lat = 65.012474;
 	var lon = 25.473893;
 
 
@@ -171,9 +188,6 @@ var moveAvatar = function(user, frametime) {
 
 	var lat = 65.012062;
 	var lon = 25.473599;
-
-
-	//Testvalues for Gina Tricot, Oulu
 
 	var avatar = scene.EntityByName(user.username);
 
@@ -197,6 +211,7 @@ var moveAvatar = function(user, frametime) {
 	var dist = Math.sqrt(Math.pow((longitudeInMeters - avatar.placeable.Position().x), 2) + 
     	Math.pow((latitudeInMeters - avatar.placeable.Position().z), 2));
 
+	/* Check distance and that avatar exists, if so we use walking function and not teleport. */
 	if (dist < 20 && avatar) {
 		globalEntity = avatar;
 		globalLat = latitudeInMeters;
@@ -205,16 +220,14 @@ var moveAvatar = function(user, frametime) {
 		return;
 	}
 
-
 	var transform = avatar.placeable.transform;
-
 	transform.pos.x = longitudeInMeters;
 	transform.pos.z = latitudeInMeters;
 
 	avatar.placeable.transform = transform;
 }
 
-
+/* Add avatar to scene. */
 var addAvatar = function(user, frametime){
 	//Check if player is on ?active list.
 	var isSucceed = isAvatarActive();
@@ -275,9 +288,7 @@ var addAvatar = function(user, frametime){
 	//0,0 on the map.
 	var latZero =  65.012115;
 	var lonZero = 25.473323;
-	//For testing, Near puistola. it seems that coordinates dont correlate to real world.
-	//var lat = 65.012577;
-	//var lon = 25.47171;
+
 	var longitudeInMeters = CalcLong(lonZero, lon, latZero, lat);
 	var latitudeInMeters = CalcLat(latZero, lat);
 	var dlon = lon - lonZero;

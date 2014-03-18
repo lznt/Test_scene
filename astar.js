@@ -212,18 +212,16 @@ function bustAndUpload(players) {
         var qByteJson = EncodeString('UTF-8', json);
 
         //Animation Code for Police and player.
-
         this.me.animationcontroller.PlayAnim('busted', 0, 'busted');
         playerToBeBusted.dynamiccomponent.SetAttribute('spraying', false);
-
-        /*playerToBeBusted.placeable.SetOrientation(lookAt(playerToBeBusted.placeable.transform.pos, 
-            this.me.placeable.transform.pos));*/
         playerToBeBusted.animationcontroller.EnableExclusiveAnimation('busted', false, 1, 1, false);
         playerToBeBusted.animationcontroller.AnimationFinished.connect(function(){
             this.me.animationcontroller.StopAllAnims(0);
             this.me.animationcontroller.PlayLoopedAnim('walk', 0, 'walk');
         });
-		http.client.Put("http://vm0063.virtues.fi/gangsters/" + player.id, json, "application/json")
+
+        /* Beta Patch code for the Django server, does not work ATM - Reported about bug. */
+		http.client.Patch("http://vm0063.virtues.fi/gangsters/" + player.id, json, "application/json")
 		.Finished.connect(function(req, status, error) {
 			  console.LogInfo(req.ResponseStatus() + " for " + req.method + " to " + req.UrlString());
 			  if (status != 200)
