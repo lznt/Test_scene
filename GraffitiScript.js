@@ -48,7 +48,7 @@ function checkVenue (venueData) {
 	//Syntax for graffitis
 	var plane = scene.EntityByName("graffiti-plane-" + venueName);
 	//Check venue owner
-	if (venueGang == "Blue Angels" && plane) {
+	if (venueGang == "Blue Angels" || venueGang == "Blue Knights" && plane) {
 		plane.mesh.materialRefs = new Array(graffitiLinks[0]);
 		Log("Found something by Blue Angels");
 	} else if (venueGang == "Purple Knights" && plane) {
@@ -58,37 +58,12 @@ function checkVenue (venueData) {
 		plane.mesh.materialRefs = new Array(graffitiLinks[2]);
 		Log("Found something by Green Shamans");
 	}
-	
-	//Police busting logic
-	if (venueSpraying == 1 && plane) {
-		var police = scene.EntityByName("robo");
-		var pX = police.placeable.Position().x;
-		var pZ = police.placeable.Position().z;
-
-		var distance = Math.sqrt(Math.pow((pX - this.me.placeable.Position().x), 2) + 
-			Math.pow((pZ - this.me.placeable.Position().z), 2));
-		if (distance <= 10) {
-			//Gangster id - in DB
-			var gangster = venueData.gangsterSpraying;
-
-			//Change value for asset, so our mobile client can check if player is busted.
-			var transfer = asset.RequestAsset("http://vm0063.virtues.fi/venues/?active", "Binary", true);
-			transfer.Succeeded.connect(function(){
-				var data = JSON.parse(transfer.RawData());
-				for (var i = 0; i < data.length; i++) 
-					if (data.id == gangster) {
-						data.bustedviapolice = 1;
-					}
-			});
-			//TODO: Add put to server database later.
-		}
-	}
 
 	//Put spraying particle on, if venue is spraying.
 	var venueSpraying = venueData.sprayinginitialized;
 	if (venueSpraying == 1 && plane) { 
 		plane.particlesystem.particleRef = "";
-		if (venueGang == "Blue Angels") {
+		if (venueGang == "Blue Angels" || venueGang == "Blue Knights") {
 			plane.particlesystem.particleRef = "http://meshmoon.eu.scenes.2.s3.amazonaws.com/mediateam-b4527d/test2/particle-graffiti-plane/bluespray.particle";
 		} else if (venueGang == "Purple Knights") {
 			plane.particlesystem.particleRef = "http://meshmoon.eu.scenes.2.s3.amazonaws.com/mediateam-b4527d/test2/particle-graffiti-plane/purplespray.particle";

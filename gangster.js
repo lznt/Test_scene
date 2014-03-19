@@ -69,11 +69,7 @@ var isAvatarActive = function() {
      				//If player exists in active and /gangsters/, return true.
      				if (jsonactive.username == json.username) {
      					return true;
-     				} else {
-     					//If player exists in scene but is not active, remove player.
-						if (scene.EntityByName(json.username))
-     						scene.RemoveEntity(json.username);
-     				}
+     				} 
      			}
      		}
      	});
@@ -230,8 +226,8 @@ var moveAvatar = function(user, frametime) {
 /* Add avatar to scene. */
 var addAvatar = function(user, frametime){
 	//Check if player is on ?active list.
-	var isSucceed = isAvatarActive();
-	if(isSucceed == false) return;
+	//var isSucceed = isAvatarActive();
+	//if(isSucceed == false) return;
 
 	var avatarEntityName = user.username;
 
@@ -367,8 +363,6 @@ function checkAnims(myAsset) {
     // Forget the disk asset so it wont be returned from cache next time you do the same request
 }
 
-//TODO: make function that removes entities that are not on the ?active list.
-
 function Update (frametime) {
     if (server.IsRunning()) {
         //GET active users
@@ -378,10 +372,7 @@ function Update (frametime) {
             	myHandler(transfer, frametime);
             	checkAnims(transfer);
             });
-
-            
             interval = 0; 
-
         } else 
             interval++;
         if (gwalkToDestination) 

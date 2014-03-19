@@ -32,11 +32,16 @@ transfer.Succeeded.connect(function(transfer) {
 var reachedGoal = true;
 frame.Updated.connect(Update);
 
+/* Update function launched every frametime, also has EnableExclusiveAnimation for animations. */
 function Update (frametime) {
     if (server.IsRunning()) {
         bustPlayers();
-        /*if(pathWays)
-            newDestination(pathWays, frametime);*/
+        if(pathWays)
+            newDestination(pathWays, frametime);
+        if (this.me.animationcontroller.GetAvailableAnimations().length > 0 &&
+            this.me.animationcontroller.GetActiveAnimations().length == 0)
+                this.me.animationcontroller.EnableExclusiveAnimation('walk', true, 1, 1, false);
+
     }
     
 }
@@ -217,11 +222,12 @@ function bustAndUpload(players) {
         playerToBeBusted.animationcontroller.EnableExclusiveAnimation('busted', false, 1, 1, false);
         playerToBeBusted.animationcontroller.AnimationFinished.connect(function(){
             this.me.animationcontroller.StopAllAnims(0);
-            this.me.animationcontroller.PlayLoopedAnim('walk', 0, 'walk');
+            this.me.animationcontroller.EnableExclusiveAnimation('walk', true, 1, 1, false);
         });
 
         /* Beta Patch code for the Django server, does not work ATM - Reported about bug. */
 		http.client.Patch("http://vm0063.virtues.fi/gangsters/" + player.id, json, "application/json")
+        .SetRequestHeader('Content-Type', 'application/json')
 		.Finished.connect(function(req, status, error) {
 			  console.LogInfo(req.ResponseStatus() + " for " + req.method + " to " + req.UrlString());
 			  if (status != 200)

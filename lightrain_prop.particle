@@ -1,0 +1,46 @@
+particle_system rain_prop
+{
+    material local://rain_prop2_mat.material
+    particle_width 0.05
+    particle_height 0.2
+    quota 8000
+    cull_each false
+    sorted false
+    local_space true
+    iteration_interval 0.0
+    nonvisible_update_timeout 0.0
+    billboard_type oriented_common
+    billboard_origin center
+    billboard_rotation_type texcoord
+    common_direction 0.0 1.0 0.0
+    common_up_vector 0.0 1.0 0.0
+    point_rendering false
+    accurate_facing false
+    emitter Box
+    {
+        position 1.0 1.0 0.0
+        direction 0.0 0.0 1.0
+        angle 40
+        width 500
+        height 10
+        depth 500
+        emission_rate 1000
+        velocity_min 1
+        velocity_max 1
+        time_to_live_min 1
+        time_to_live_max 2
+        duration_min 0
+        duration_max 0
+        repeat_delay_min 0
+        repeat_delay_max 0
+        colour_range_start 0.7 1 1 0.5
+        colour_range_end 0.7 1 1 0.5
+    }
+
+	affector LinearForce
+	{
+		force_vector 0.0 -10.0 0.0
+		force_application add
+	}
+
+}
