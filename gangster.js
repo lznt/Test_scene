@@ -162,6 +162,32 @@ var walkToDestination = function (frametime) {
         reachedGoal = false;
 }
 
+var latitude;
+var longitude;
+
+function random(n) {
+    seed = new Date().getTime();
+    seed = (seed*9301+49297) % 233280;
+    
+    return (Math.floor((seed/(233280.0)* n)));
+}
+var testno = 0;
+function testMovementScript (frametime) {
+	var lats = [65.012119, 65.012807, 65.012907, 65.011570, 65.011121, 65.011053, 65.010917];
+	var longs = [25.473373, 25.471667, 25.472289, 25.472504, 25.474661, 25.474564, 25.474371];
+	lats = [65.012123,  65.012108, 65.012113, 65.012107,65.012070,65.012098, 65.012128,65.012180,65.012206];
+	longs = [25.473353,  25.473424, 25.473409, 25.473428, 25.473560, 25.473608, 25.473562, 25.473461, 25.473503];
+	var rnd = random(lats.length);
+	
+	latitude = lats[testno];
+	longitude = longs[testno];
+	if (testno < lats.length)
+		testno++;
+	else
+		testno = 0;
+	moveAvatar(null, frametime);
+}
+
 /* Function for moving avatar when position changes. */
 var moveAvatar = function(user, frametime) {
 	//0 , 0 on 3d map.
@@ -173,8 +199,8 @@ var moveAvatar = function(user, frametime) {
 
 
 	//Later change to this:
-	/* var lat = user.latitude;
-		var lon = user.longitude; */
+	//var lat = user.latitude;
+	//var lon = user.longitude; 
 
 	var lat = 65.011802;
 	var lon = 25.472868;
@@ -185,7 +211,10 @@ var moveAvatar = function(user, frametime) {
 	var lat = 65.012062;
 	var lon = 25.473599;
 
-	var avatar = scene.EntityByName(user.username);
+	var lat = latitude;
+	var lon = longitude;
+
+	var avatar = scene.EntityByName('lznt');
 
 	var longitudeInMeters = CalcLong(lonZero, lon, latZero, lat);
 	var latitudeInMeters = CalcLat(latZero, lat);
@@ -208,7 +237,7 @@ var moveAvatar = function(user, frametime) {
     	Math.pow((latitudeInMeters - avatar.placeable.Position().z), 2));
 
 	/* Check distance and that avatar exists, if so we use walking function and not teleport. */
-	if (dist < 20 && avatar) {
+	if (dist < 10 && avatar) {
 		globalEntity = avatar;
 		globalLat = latitudeInMeters;
 		globalLon = longitudeInMeters;
@@ -220,7 +249,12 @@ var moveAvatar = function(user, frametime) {
 	transform.pos.x = longitudeInMeters;
 	transform.pos.z = latitudeInMeters;
 
+	if (transform.pos.y < 5)
+		transform.pos.y = 9.9;
+
 	avatar.placeable.transform = transform;
+
+
 }
 
 /* Add avatar to scene. */
@@ -233,7 +267,7 @@ var addAvatar = function(user, frametime){
 
 	//If player is already in the scene.
 	if (scene.EntityByName(user.username)) {
-		moveAvatar(user, frametime);
+		//moveAvatar(user, frametime);
 		return;
 	}
 
@@ -347,6 +381,13 @@ function checkAnims(myAsset) {
     var data = JSON.parse(myAsset.RawData());
     for(var i=0; i<data.length; ++i) {
         if (scene.EntityByName(data[i].username)) {
+        	if (scene.EntityByName(data[i].username).placeable.transform.y < 9.9) {
+        		Log ('rofl');
+				var tm = scene.EntityByName(data[i].username).placeable.transform; 
+				tm.y = 9.9;
+				scene.EntityByName(data[i].username).placeable.transform = tm;
+			}
+
         	if (scene.EntityByName(data[i].username).animationcontroller.GetAvailableAnimations().length > 0)
 				scene.EntityByName(data[i].username).placeable.visible = true;        
         	//Check if is spraying, dont activate anymore, let spray anim go first.
@@ -357,11 +398,14 @@ function checkAnims(myAsset) {
 
         	scene.EntityByName(data[i].username).animationcontroller.EnableExclusiveAnimation('stand', true,0,0, false);
 
-        	
 		}
+
     }
     // Forget the disk asset so it wont be returned from cache next time you do the same request
 }
+//for testing only 
+var intervalForTesting = 0;
+
 
 function Update (frametime) {
     if (server.IsRunning()) {
@@ -375,6 +419,13 @@ function Update (frametime) {
             interval = 0; 
         } else 
             interval++;
+        Log (intervalForTesting);
+        if (intervalForTesting > 200) {
+        	testMovementScript(frametime);
+        	intervalForTesting = 0;
+        }
+        else
+        	intervalForTesting++;
         if (gwalkToDestination) 
             	walkToDestination(frametime); 
     } else {

@@ -11,38 +11,28 @@ SetLogChannelName("Time And Weather Script"); //this can be anything, but best i
 
 frame.Updated.connect(Update);
 
-var interval = 1501;
+var interval = 45001;
+var interval2 = 45001;
 var day = null;
 var updateTimes = ['08:00', '14:00', '20:00'];
 var entity = scene.EntityByName('WeatherEntity');
 
 //Time for SkyX
 function Update (frametime) {
+	if (interval2 >= 45000) {
+		interval2 = 0;	
+		getWeather();
+	} else
+		interval2++; 
+
 	if (interval >= 1500) {
 		//get time
 		setTimeForSkyX();
 		interval = 0;	
 		//checkTime();
 
-	} else if (interval >= 45000) {
-		interval = 0;	
-		getWeather();
 	} else 
 		interval++;
-}
-
-/* Check the weather three times a day. Lets not flood a free service and get banned ;) */
-function checkTime() {
-	if (new Date().getMinutes() < 10) 
-			var time = new Date().getHours() + ":" + 0 + new Date().getMinutes();
-		else
-			var time = new Date().getHours() + ":" + new Date().getMinutes();
-
-	Log (time + "  " + updateTimes[1]);
-
-	for (var i in updateTimes)
-		if (time == updateTimes[i])
-			getWeather();
 }
 
 function setTimeForSkyX() {
@@ -54,6 +44,7 @@ function setTimeForSkyX() {
 		this.me.skyx.time = date.getHours() + '.' + 0 + date.getMinutes();
 	else 
 		this.me.skyx.time = date.getHours() + '.' + date.getMinutes();
+	Log('Time set');
 
 }
 
@@ -104,15 +95,25 @@ function setWeather(mainWeather, desc) {
 		}
 
 		if (mainWeather == 'Rain' && desc == 'light rain') {
+			this.me.fog.mode = 3;
+			this.me.fog.startDistance = 10;
+			this.me.fog.endDistance = 300;
+			this.me.fog.expDensity = 0,01;
+
 			//Light rain
 			entity.mesh.materialRefs = new Array('local://rain_prop2_mat.material');
 			entity.mesh.meshRef = 'local://rain_prop2.mesh';
-			entity.particlesystem.particleRef = 'rain_prop.particle';
+			entity.particlesystem.particleRef = 'local://rain_prop.particle';
 		} else if (mainWeather == 'Rain') {
+			this.me.fog.mode = 3;
+			this.me.fog.startDistance = 10;
+			this.me.fog.endDistance = 300;
+			this.me.fog.expDensity = 0,01;
+
 			//Heavier or heavy rain. Also streets are flooded
 			entity.mesh.materialRefs = new Array('local://rain_prop2_mat.material');
 			entity.mesh.meshRef = 'local://rain_prop2.mesh';
-			entity.particlesystem.particleRef = 'lightrain_prop.particle';
+			entity.particlesystem.particleRef = 'local://lightrain_prop.particle';
 		}
 
 		if (mainWeather == 'Mist') {
